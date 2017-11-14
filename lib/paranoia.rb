@@ -87,6 +87,7 @@ module Paranoia
       # if a transaction exists, add the record so that after_commit
       # callbacks can be run
       add_to_transaction
+
       update_columns(paranoia_destroy_attributes)
     elsif !frozen?
       assign_attributes(paranoia_destroy_attributes)
@@ -176,10 +177,11 @@ module Paranoia
 
   def paranoia_destroy_attributes
     h = {
-      paranoia_column => paranoia_deleted_value || current_time_from_proper_timezone
+      paranoia_column => (paranoia_deleted_value.nil? ? current_time_from_proper_timezone : paranoia_deleted_value)
     }.merge(timestamp_attributes_with_current_time)
 
-    h.merge({deleted_at: current_time_from_proper_timezone}) if self.respond_to?(:deleted_at)
+
+    h.merge!({deleted_at: current_time_from_proper_timezone}) if self.respond_to?(:deleted_at)
     h
   end
 
@@ -271,7 +273,7 @@ ActiveSupport.on_load(:active_record) do
     # Pretty please.
     def self.I_AM_THE_DESTROYER!
       # TODO: actually implement spelling error fixes
-    puts %Q{
+      puts %Q{
       Sharon: "There should be a method called I_AM_THE_DESTROYER!"
       Ryan:   "What should this method do?"
       Sharon: "It should fix all the spelling errors on the page!"
