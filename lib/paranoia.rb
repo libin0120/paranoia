@@ -170,9 +170,12 @@ module Paranoia
   end
 
   def paranoia_destroy_attributes
-    {
-      paranoia_column => current_time_from_proper_timezone
+    h = {
+      paranoia_column => paranoia_deleted_value || current_time_from_proper_timezone
     }.merge(timestamp_attributes_with_current_time)
+
+    h.merge({deleted_at: current_time_from_proper_timezone}) if self.respond_to?(:deleted_at)
+    h
   end
 
   def timestamp_attributes_with_current_time
@@ -234,10 +237,14 @@ ActiveSupport.on_load(:active_record) do
       alias_method :destroy_without_paranoia, :destroy
 
       include Paranoia
-      class_attribute :paranoia_column, :paranoia_sentinel_value
+      class_attribute :paranoia_column, :paranoia_sentinel_value, :paranoia_deleted_value
 
       self.paranoia_column = (options[:column] || :deleted_at).to_s
       self.paranoia_sentinel_value = options.fetch(:sentinel_value) { Paranoia.default_sentinel_value }
+      self.paranoia_deleted_value = options.fetch(:deleted_value) { nil }
+
+
+
       def self.paranoia_scope
         where(paranoia_column => paranoia_sentinel_value)
       end
@@ -277,6 +284,10 @@ ActiveSupport.on_load(:active_record) do
 
     def paranoia_sentinel_value
       self.class.paranoia_sentinel_value
+    end
+
+    def paranoia_deleted_value
+      self.class.paranoia_deleted_value
     end
   end
 end
